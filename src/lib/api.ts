@@ -1,5 +1,5 @@
 import { mockTransactions } from './data';
-import type { Stock, MutualFund, Bond, Gold, Transaction, PortfolioSummary, PortfolioHistory, AssetAllocation } from './types';
+import type { Stock, MutualFund, Bond, Gold, Transaction, PortfolioSummary, PortfolioHistory, AssetAllocation, RealizedPL } from './types';
 
 // In-memory data store, seeded with initial mock data
 let transactions: Transaction[] = [...mockTransactions];
@@ -49,7 +49,7 @@ const processTransactions = () => {
             holdings[t.assetName].totalInvested += t.totalAmount;
         } else { // Sell
             const holding = holdings[t.assetName];
-            const proportion = t.quantity / holding.quantity;
+            const proportion = t.quantity / (holding.quantity + t.quantity); // before sell
             if (holding.quantity > 0) {
                  holding.totalInvested -= holding.totalInvested * proportion;
             }
@@ -58,8 +58,42 @@ const processTransactions = () => {
         holdings[t.assetName].transactions.push(t);
     });
 
-    return Object.values(holdings).filter(h => h.quantity > 0.0001); // Filter out sold-off assets
+    return Object.values(holdings)
 };
+
+const calculateCostBasisFIFO = (sellTransaction: Transaction, allTransactions: Transaction[]): number => {
+    const buyTransactions = allTransactions
+        .filter(t => t.assetName === sellTransaction.assetName && t.type === 'Buy' && new Date(t.date) <= new Date(sellTransaction.date))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let costBasis = 0;
+    let quantityToSell = sellTransaction.quantity;
+    // Create a mutable copy of buy transactions to track remaining quantities
+    const mutableBuys = buyTransactions.map(buy => ({ ...buy, remaining: buy.quantity }));
+
+    for (const buy of mutableBuys) {
+        if (quantityToSell <= 0) break;
+
+        const qtyFromThisBuy = Math.min(buy.remaining, quantityToSell);
+        costBasis += qtyFromThisBuy * buy.price;
+        buy.remaining -= qtyFromThisBuy;
+        quantityToSell -= qtyFromThisBuy;
+    }
+    
+    // Fallback for cases where buy history might be incomplete in mock data
+    if (quantityToSell > 0 && quantityToSell < 1e-9) { // handle floating point inaccuracies
+        quantityToSell = 0;
+    }
+    if (quantityToSell > 0) {
+        const avgBuyPrice = buyTransactions.length > 0
+            ? buyTransactions.reduce((acc, t) => acc + t.totalAmount, 0) / buyTransactions.reduce((acc, t) => acc + t.quantity, 0)
+            : sellTransaction.price; // fallback to sell price if no buy history
+        costBasis += quantityToSell * avgBuyPrice;
+    }
+
+    return costBasis;
+};
+
 
 const api = {
   getTransactions: async (): Promise<Transaction[]> => {
@@ -75,7 +109,7 @@ const api = {
   },
 
   getCalculatedStocks: async (): Promise<Stock[]> => {
-      const holdings = processTransactions();
+      const holdings = processTransactions().filter(h => h.quantity > 1e-9);
       return holdings.filter(h => h.assetType === 'Stock').map(h => {
           const currentPrice = getCurrentPrice(h.assetName, 'Stock');
           return {
@@ -83,14 +117,14 @@ const api = {
               ticker: h.assetName.substring(0,4).toUpperCase(),
               name: h.assetName,
               shares: h.quantity,
-              avgPrice: h.totalInvested / h.quantity,
+              avgPrice: h.quantity > 0 ? h.totalInvested / h.quantity : 0,
               currentPrice: currentPrice,
           }
       });
   },
   
   getCalculatedMutualFunds: async (): Promise<MutualFund[]> => {
-      const holdings = processTransactions();
+      const holdings = processTransactions().filter(h => h.quantity > 1e-9);
       return holdings.filter(h => h.assetType === 'Mutual Fund').map(h => {
           return {
               id: h.assetName,
@@ -103,15 +137,14 @@ const api = {
   },
 
   getCalculatedBonds: async (): Promise<Bond[]> => {
-      const holdings = processTransactions();
+      const holdings = processTransactions().filter(h => h.quantity > 1e-9);
       return holdings.filter(h => h.assetType === 'Bond').map(h => {
-          const lastBuy = h.transactions.filter(t => t.type === 'Buy').pop();
           return {
               id: h.assetName,
               name: h.assetName,
               isin: `US${h.assetName.replace(/[^A-Z0-9]/g, '').slice(0,10)}`,
               quantity: h.quantity,
-              purchasePrice: h.totalInvested / h.quantity,
+              purchasePrice: h.quantity > 0 ? h.totalInvested / h.quantity : 0,
               currentPrice: getCurrentPrice(h.assetName, 'Bond'),
               couponRate: ((h.assetName.length % 4) + 1) * 0.5,
               maturityDate: '2030-01-01'
@@ -120,20 +153,45 @@ const api = {
   },
 
   getCalculatedGold: async (): Promise<Gold[]> => {
-      const holdings = processTransactions();
+      const holdings = processTransactions().filter(h => h.quantity > 1e-9);
       return holdings.filter(h => h.assetType === 'Gold').map(h => {
           return {
               id: h.assetName,
               name: h.assetName,
               grams: h.quantity,
-              purchasePricePerGram: h.totalInvested / h.quantity,
+              purchasePricePerGram: h.quantity > 0 ? h.totalInvested / h.quantity : 0,
               currentPricePerGram: getCurrentPrice(h.assetName, 'Gold'),
           }
       });
   },
 
+  getRealizedPL: async (): Promise<RealizedPL[]> => {
+    const allTransactions = await api.getTransactions();
+    const sellTransactions = allTransactions.filter((t) => t.type === 'Sell');
+    
+    const realizedPLData: RealizedPL[] = sellTransactions.map(sell => {
+      const costBasis = calculateCostBasisFIFO(sell, allTransactions);
+      const saleValue = sell.totalAmount;
+      const profitOrLoss = saleValue - costBasis;
+  
+      return {
+          id: sell.id,
+          saleDate: sell.date,
+          assetName: sell.assetName,
+          assetType: sell.assetType,
+          quantitySold: sell.quantity,
+          salePrice: sell.price,
+          costBasis: costBasis,
+          saleValue: saleValue,
+          profitOrLoss: profitOrLoss,
+      };
+    });
+  
+    return realizedPLData.sort((a,b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
+  },
+
   getCalculatedSummary: async(): Promise<PortfolioSummary> => {
-    const holdings = processTransactions();
+    const holdings = processTransactions().filter(h => h.quantity > 1e-9);
     let totalValue = 0;
     let totalInvested = 0;
     let dayPl = 0;
@@ -146,10 +204,15 @@ const api = {
         dayPl += h.quantity * getDayChange(currentPrice);
     });
 
+    const unrealizedPl = totalValue - totalInvested;
+
+    const realizedPLData = await api.getRealizedPL();
+    const totalRealizedPl = realizedPLData.reduce((acc, item) => acc + item.profitOrLoss, 0);
+
     return {
         totalValue,
         dayPl,
-        totalPl: totalValue - totalInvested,
+        totalPl: unrealizedPl + totalRealizedPl,
     };
   },
 
@@ -170,7 +233,7 @@ const api = {
 
   getAssetAllocation: async (): Promise<AssetAllocation[]> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    const holdings = processTransactions();
+    const holdings = processTransactions().filter(h => h.quantity > 1e-9);
     const allocation : Record<string, number> = {
         'Stocks': 0,
         'Mutual Funds': 0,
