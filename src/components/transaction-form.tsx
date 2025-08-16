@@ -25,6 +25,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { PlusCircle } from 'lucide-react';
 import api from '@/lib/api';
+import { useEffect, useState } from 'react';
 
 const formSchema = z.object({
   assetName: z.string().min(2, { message: 'Asset name must be at least 2 characters.' }),
@@ -37,6 +38,8 @@ const formSchema = z.object({
 export function TransactionForm() {
     const router = useRouter();
     const { toast } = useToast();
+    const [ownedAssets, setOwnedAssets] = useState<string[]>([]);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -47,6 +50,40 @@ export function TransactionForm() {
             price: 0,
         },
     });
+
+    const transactionType = form.watch('type');
+
+    useEffect(() => {
+        async function fetchOwnedAssets() {
+            try {
+                const [stocks, mutualFunds, bonds, gold] = await Promise.all([
+                    api.getStocks(),
+                    api.getMutualFunds(),
+                    api.getBonds(),
+                    api.getGold(),
+                ]);
+                const assetNames = [
+                    ...stocks.map(s => s.name),
+                    ...mutualFunds.map(m => m.name),
+                    ...bonds.map(b => b.name),
+                    ...gold.map(g => g.name),
+                ];
+                setOwnedAssets([...new Set(assetNames)]);
+            } catch (error) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Failed to load owned assets.',
+                });
+            }
+        }
+        fetchOwnedAssets();
+    }, [toast]);
+    
+    useEffect(() => {
+        form.setValue('assetName', '');
+    }, [transactionType, form]);
+
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
@@ -84,11 +121,26 @@ export function TransactionForm() {
                     name="assetName"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Asset Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g. Apple Inc." {...field} />
-                        </FormControl>
-                        <FormMessage />
+                            <FormLabel>Asset Name</FormLabel>
+                            {transactionType === 'Sell' ? (
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select an asset to sell" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {ownedAssets.map(asset => (
+                                            <SelectItem key={asset} value={asset}>{asset}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <FormControl>
+                                    <Input placeholder="e.g. Apple Inc." {...field} />
+                                </FormControl>
+                            )}
+                            <FormMessage />
                         </FormItem>
                     )}
                 />
