@@ -26,6 +26,13 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { PlusCircle } from 'lucide-react';
 import api from '@/lib/api';
 import { useEffect, useState } from 'react';
+import type { Stock, MutualFund, Bond, Gold } from '@/lib/types';
+
+type OwnedAsset = {
+    name: string;
+    type: 'Stock' | 'Mutual Fund' | 'Bond' | 'Gold';
+    quantity: number;
+}
 
 const formSchema = z.object({
   assetName: z.string().min(2, { message: 'Asset name must be at least 2 characters.' }),
@@ -33,12 +40,17 @@ const formSchema = z.object({
   type: z.enum(['Buy', 'Sell']),
   quantity: z.coerce.number().positive(),
   price: z.coerce.number().positive(),
+}).refine(data => {
+    // Custom validation logic can be added here if needed, e.g., for selling quantity
+    return true;
+}, {
+    message: "Validation failed",
 });
 
 export function TransactionForm() {
     const router = useRouter();
     const { toast } = useToast();
-    const [ownedAssets, setOwnedAssets] = useState<string[]>([]);
+    const [ownedAssets, setOwnedAssets] = useState<OwnedAsset[]>([]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -52,23 +64,24 @@ export function TransactionForm() {
     });
 
     const transactionType = form.watch('type');
+    const selectedAssetName = form.watch('assetName');
 
     useEffect(() => {
         async function fetchOwnedAssets() {
             try {
                 const [stocks, mutualFunds, bonds, gold] = await Promise.all([
-                    api.getStocks(),
-                    api.getMutualFunds(),
-                    api.getBonds(),
-                    api.getGold(),
+                    api.getCalculatedStocks(),
+                    api.getCalculatedMutualFunds(),
+                    api.getCalculatedBonds(),
+                    api.getCalculatedGold(),
                 ]);
-                const assetNames = [
-                    ...stocks.map(s => s.name),
-                    ...mutualFunds.map(m => m.name),
-                    ...bonds.map(b => b.name),
-                    ...gold.map(g => g.name),
+                const assetList: OwnedAsset[] = [
+                    ...stocks.map(s => ({ name: s.name, type: 'Stock' as const, quantity: s.shares })),
+                    ...mutualFunds.map(m => ({ name: m.name, type: 'Mutual Fund' as const, quantity: m.units })),
+                    ...bonds.map(b => ({ name: b.name, type: 'Bond' as const, quantity: b.quantity })),
+                    ...gold.map(g => ({ name: g.name, type: 'Gold' as const, quantity: g.grams })),
                 ];
-                setOwnedAssets([...new Set(assetNames)]);
+                setOwnedAssets(assetList.filter(a => a.quantity > 0));
             } catch (error) {
                 toast({
                     variant: 'destructive',
@@ -84,8 +97,25 @@ export function TransactionForm() {
         form.setValue('assetName', '');
     }, [transactionType, form]);
 
+    useEffect(() => {
+        const selectedAsset = ownedAssets.find(asset => asset.name === selectedAssetName);
+        if (selectedAsset) {
+            form.setValue('assetType', selectedAsset.type);
+        }
+    }, [selectedAssetName, ownedAssets, form]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        if (values.type === 'Sell') {
+            const assetToSell = ownedAssets.find(a => a.name === values.assetName);
+            if (!assetToSell || values.quantity > assetToSell.quantity) {
+                form.setError('quantity', {
+                    type: 'manual',
+                    message: `You can only sell up to ${assetToSell?.quantity || 0} units.`,
+                });
+                return;
+            }
+        }
+
         try {
             await api.addTransaction({
                 ...values,
@@ -97,7 +127,7 @@ export function TransactionForm() {
                 description: `Successfully logged ${values.type} of ${values.assetName}.`,
             });
             form.reset();
-            router.refresh();
+            router.refresh(); // This will re-trigger data fetching on all pages
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -131,7 +161,7 @@ export function TransactionForm() {
                                     </FormControl>
                                     <SelectContent>
                                         {ownedAssets.map(asset => (
-                                            <SelectItem key={asset} value={asset}>{asset}</SelectItem>
+                                            <SelectItem key={asset.name} value={asset.name}>{asset.name} ({asset.type})</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -150,7 +180,7 @@ export function TransactionForm() {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Asset Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={transactionType === 'Sell'}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select asset type" />

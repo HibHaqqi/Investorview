@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Bond } from '@/lib/types';
 
 async function getBonds(): Promise<Bond[]> {
-  const bonds = await api.getBonds();
+  const bonds = await api.getCalculatedBonds();
   return bonds;
 }
 

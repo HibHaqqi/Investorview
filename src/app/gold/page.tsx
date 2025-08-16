@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Gold } from '@/lib/types';
 
 async function getGold(): Promise<Gold[]> {
-  const gold = await api.getGold();
+  const gold = await api.getCalculatedGold();
   return gold;
 }
 

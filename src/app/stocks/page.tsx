@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Stock } from '@/lib/types';
 
 async function getStocks(): Promise<Stock[]> {
-  const stocks = await api.getStocks();
+  const stocks = await api.getCalculatedStocks();
   return stocks;
 }
 

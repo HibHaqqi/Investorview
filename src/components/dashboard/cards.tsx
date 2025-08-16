@@ -11,7 +11,12 @@ function formatCurrency(value: number) {
 }
 
 export async function DashboardCards() {
-  const summary = await api.getSummary();
+  const summary = await api.getCalculatedSummary();
+
+  const totalInvested = summary.totalValue - summary.totalPl;
+  const totalPlPercent = totalInvested > 0 ? (summary.totalPl / totalInvested) * 100 : 0;
+  const dayPlPercent = (summary.totalValue - summary.dayPl) > 0 ? (summary.dayPl / (summary.totalValue - summary.dayPl)) * 100 : 0;
+
 
   const metrics = [
     {
@@ -25,7 +30,7 @@ export async function DashboardCards() {
       value: formatCurrency(summary.dayPl),
       icon: DollarSign,
       change: {
-        value: ((summary.dayPl / (summary.totalValue - summary.dayPl)) * 100).toFixed(2) + '%',
+        value: `${dayPlPercent.toFixed(2)}%`,
         isPositive: summary.dayPl >= 0,
       },
     },
@@ -34,7 +39,7 @@ export async function DashboardCards() {
       value: formatCurrency(summary.totalPl),
       icon: DollarSign,
       change: {
-        value: ((summary.totalPl / (summary.totalValue - summary.totalPl)) * 100).toFixed(2) + '%',
+        value: `${totalPlPercent.toFixed(2)}%`,
         isPositive: summary.totalPl >= 0,
       },
     },

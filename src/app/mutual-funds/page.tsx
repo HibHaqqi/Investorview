@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { MutualFund } from '@/lib/types';
 
 async function getMutualFunds(): Promise<MutualFund[]> {
-  const funds = await api.getMutualFunds();
+  const funds = await api.getCalculatedMutualFunds();
   return funds;
 }
 

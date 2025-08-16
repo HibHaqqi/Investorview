@@ -6,10 +6,10 @@ import { UnrealizedPL } from '@/lib/types';
 
 async function getUnrealizedPL(): Promise<UnrealizedPL[]> {
     const [stocks, mutualFunds, bonds, gold] = await Promise.all([
-        api.getStocks(),
-        api.getMutualFunds(),
-        api.getBonds(),
-        api.getGold(),
+        api.getCalculatedStocks(),
+        api.getCalculatedMutualFunds(),
+        api.getCalculatedBonds(),
+        api.getCalculatedGold(),
     ]);
 
     const data: UnrealizedPL[] = [
