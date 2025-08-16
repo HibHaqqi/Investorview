@@ -61,3 +61,22 @@ export type PortfolioHistory = {
   date: string;
   value: number;
 };
+
+export type UnrealizedPL = {
+  assetName: string;
+  assetType: 'Stock' | 'Mutual Fund' | 'Bond' | 'Gold';
+  investedValue: number;
+  currentValue: number;
+};
+
+export type RealizedPL = {
+    id: string;
+    saleDate: string;
+    assetName: string;
+    assetType: 'Stock' | 'Mutual Fund' | 'Bond' | 'Gold';
+    quantitySold: number;
+    salePrice: number;
+    costBasis: number;
+    saleValue: number;
+    profitOrLoss: number;
+};

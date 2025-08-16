@@ -15,6 +15,8 @@ const pageTitles: { [key: string]: string } = {
   '/bonds': 'Bonds Holdings',
   '/gold': 'Gold Investments',
   '/transactions': 'Transaction Journal',
+  '/unrealized-pl': 'Unrealized P/L',
+  '/realized-pl': 'Realized P/L',
 };
 
 export function Header() {

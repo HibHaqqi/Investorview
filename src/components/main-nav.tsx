@@ -8,6 +8,7 @@ import {
   SidebarMenuButton,
   SidebarContent,
   SidebarFooter,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
@@ -19,6 +20,8 @@ import {
   Settings,
   CircleHelp,
   User,
+  LineChart,
+  AreaChart,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
@@ -30,6 +33,11 @@ const links = [
   { href: '/gold', label: 'Gold', icon: Gem },
   { href: '/transactions', label: 'Transactions', icon: ArrowRightLeft },
 ];
+
+const analysisLinks = [
+    { href: '/unrealized-pl', label: 'Unrealized P/L', icon: LineChart },
+    { href: '/realized-pl', label: 'Realized P/L', icon: AreaChart },
+]
 
 export function MainNav() {
   const pathname = usePathname();
@@ -60,6 +68,23 @@ export function MainNav() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+        </SidebarMenu>
+        <SidebarSeparator />
+        <SidebarMenu>
+            {analysisLinks.map((link) => (
+                <SidebarMenuItem key={link.href}>
+                <SidebarMenuButton
+                    asChild
+                    isActive={pathname === link.href}
+                    tooltip={link.label}
+                >
+                    <a href={link.href}>
+                    <link.icon />
+                    <span>{link.label}</span>
+                    </a>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+            ))}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2">
