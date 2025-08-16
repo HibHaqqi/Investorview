@@ -3,6 +3,10 @@ import type { Transaction, PortfolioHistory, AssetAllocation, PortfolioSummary }
 // The single source of truth for all portfolio data is now the transaction history.
 // Asset values and holdings will be calculated from this list.
 export const mockTransactions: Transaction[] = [
+  // Deposits
+  { id: 'd1', date: '2023-01-01', type: 'Deposit', totalAmount: 100000 },
+  { id: 'd2', date: '2023-05-01', type: 'Deposit', totalAmount: 50000 },
+
   // Apple Inc.
   { id: '1', date: '2023-01-15', assetName: 'Apple Inc.', assetType: 'Stock', type: 'Buy', quantity: 20, price: 150.25, totalAmount: 3005 },
   { id: '2', date: '2023-03-10', assetName: 'Apple Inc.', assetType: 'Stock', type: 'Buy', quantity: 30, price: 160.50, totalAmount: 4815 },
@@ -44,6 +48,9 @@ export const mockSummary: PortfolioSummary = {
   totalValue: 0,
   dayPl: 0,
   totalPl: 0,
+  totalDeposits: 0,
+  totalInvested: 0,
+  availableCash: 0,
 };
 
 export const mockStocks: any[] = [];

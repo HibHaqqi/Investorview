@@ -7,6 +7,20 @@ import { Badge } from '@/components/ui/badge';
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 
+const TypeCell = ({ row }: { row: Transaction }) => {
+    let color = '';
+    switch (row.type) {
+        case 'Buy': color = 'text-blue-600'; break;
+        case 'Sell': color = 'text-red-600'; break;
+        case 'Deposit': color = 'text-green-600'; break;
+    }
+    return (
+      <span className={`font-medium ${color}`}>
+        {row.type}
+      </span>
+    );
+}
+
 export const columns: ({
     accessorKey: keyof Transaction | ((row: Transaction) => any);
     header: any;
@@ -21,34 +35,32 @@ export const columns: ({
   },
   { 
     accessorKey: 'assetName', 
-    header: 'Asset', 
+    header: 'Asset',
+    cell: ({ row }) => row.assetName || 'N/A',
     enableSorting: true
   },
   { 
     accessorKey: 'assetType', 
     header: 'Asset Type',
-    cell: ({ row }) => <Badge variant="secondary">{row.assetType}</Badge>,
+    cell: ({ row }) => row.assetType ? <Badge variant="secondary">{row.assetType}</Badge> : 'N/A',
     enableSorting: true
   },
   { 
     accessorKey: 'type', 
     header: 'Type',
-    cell: ({ row }) => (
-      <span className={`font-medium ${row.type === 'Buy' ? 'text-green-600' : 'text-red-600'}`}>
-        {row.type}
-      </span>
-    ),
+    cell: TypeCell,
     enableSorting: true
   },
   { 
     accessorKey: 'quantity', 
-    header: 'Quantity', 
+    header: 'Quantity',
+    cell: ({ row }) => row.quantity || 'N/A',
     enableSorting: true
   },
   { 
     accessorKey: 'price', 
     header: 'Price',
-    cell: ({ row }) => formatCurrency(row.price),
+    cell: ({ row }) => row.price ? formatCurrency(row.price) : 'N/A',
     enableSorting: true
   },
   { 
