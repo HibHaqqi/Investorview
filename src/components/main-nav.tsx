@@ -38,7 +38,7 @@ export function MainNav() {
     <>
       <SidebarHeader>
         <div className="flex items-center gap-3 p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-8 w-8 text-primary-foreground"><rect width="256" height="256" fill="none"/><path d="M32,80V64a8,8,0,0,1,8-8H216a8,8,0,0,1,8,8V80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M224,176v16a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V176" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="16" y1="128" x2="240" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-8 w-8 text-primary-foreground"><rect width="256" height="256" fill="none"/><path d="M32,80V64a8,8,0,0,1,8-8H216a8,8,0,0,1,8,8V80" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="16"/><path d="M224,176v16a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V176" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="16"/><line x1="16" y1="128" x2="240" y2="128" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="16"/></svg>
             <div className="group-data-[collapsible=icon]:hidden">
                 <h1 className="text-xl font-bold text-sidebar-foreground">InvestorView</h1>
             </div>
