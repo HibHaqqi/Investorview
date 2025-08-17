@@ -34,7 +34,7 @@ const processTransactions = () => {
     }} = {};
 
     transactions
-        .filter(t => t.type !== 'Deposit')
+        .filter(t => t.type === 'Buy' || t.type === 'Sell')
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).forEach(t => {
         if (!t.assetName || !t.assetType) return;
         if (!holdings[t.assetName]) {
@@ -52,9 +52,10 @@ const processTransactions = () => {
             holdings[t.assetName].totalInvested += t.totalAmount;
         } else { // Sell
             const holding = holdings[t.assetName];
-            const proportion = t.quantity! / (holding.quantity + t.quantity!); // before sell
+            // Prorate the cost basis
+            const proportionSold = holding.quantity > 0 ? t.quantity! / holding.quantity : 1;
             if (holding.quantity > 0) {
-                 holding.totalInvested -= holding.totalInvested * proportion;
+                 holding.totalInvested -= holding.totalInvested * proportionSold;
             }
             holding.quantity -= t.quantity!;
         }
@@ -71,8 +72,24 @@ const calculateCostBasisFIFO = (sellTransaction: Transaction, allTransactions: T
 
     let costBasis = 0;
     let quantityToSell = sellTransaction.quantity!;
-    // Create a mutable copy of buy transactions to track remaining quantities
+    
+    // Create a mutable copy of buy transactions to track remaining quantities from previous sells
     const mutableBuys = buyTransactions.map(buy => ({ ...buy, remaining: buy.quantity! }));
+
+    const sellTransactionsForAsset = allTransactions
+      .filter(t => t.assetName === sellTransaction.assetName && t.type === 'Sell' && new Date(t.date) < new Date(sellTransaction.date))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    for(const pastSell of sellTransactionsForAsset) {
+      let soldQty = pastSell.quantity!;
+      for (const buy of mutableBuys) {
+        if (soldQty <= 0) break;
+        const qtyToReduce = Math.min(buy.remaining, soldQty);
+        buy.remaining -= qtyToReduce;
+        soldQty -= qtyToReduce;
+      }
+    }
+
 
     for (const buy of mutableBuys) {
         if (quantityToSell <= 0) break;
@@ -213,10 +230,11 @@ const api = {
     const totalRealizedPl = realizedPLData.reduce((acc, item) => acc + item.profitOrLoss, 0);
 
     const totalDeposits = transactions.filter(t => t.type === 'Deposit').reduce((acc, t) => acc + t.totalAmount, 0);
-    const totalWithdrawals = transactions.filter(t => t.type === 'Sell').reduce((acc, t) => acc + t.totalAmount, 0);
+    const totalWithdrawalsFromSell = transactions.filter(t => t.type === 'Sell').reduce((acc, t) => acc + t.totalAmount, 0);
+    const totalWithdrawalsFromCash = transactions.filter(t => t.type === 'Withdrawal').reduce((acc, t) => acc + t.totalAmount, 0);
     const totalBuys = transactions.filter(t => t.type === 'Buy').reduce((acc, t) => acc + t.totalAmount, 0);
 
-    const availableCash = totalDeposits + totalWithdrawals - totalBuys;
+    const availableCash = totalDeposits + totalWithdrawalsFromSell - totalBuys - totalWithdrawalsFromCash;
 
     return {
         totalValue,

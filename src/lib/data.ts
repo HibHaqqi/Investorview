@@ -1,11 +1,13 @@
-import type { Transaction, PortfolioHistory, AssetAllocation, PortfolioSummary } from './types';
+import type { Transaction } from './types';
 
 // The single source of truth for all portfolio data is now the transaction history.
 // Asset values and holdings will be calculated from this list.
 export const mockTransactions: Transaction[] = [
-  // Deposits
+  // Deposits & Withdrawals
   { id: 'd1', date: '2023-01-01', type: 'Deposit', totalAmount: 100000 },
   { id: 'd2', date: '2023-05-01', type: 'Deposit', totalAmount: 50000 },
+  { id: 'w1', date: '2024-01-15', type: 'Withdrawal', totalAmount: 10000 },
+
 
   // Apple Inc.
   { id: '1', date: '2023-01-15', assetName: 'Apple Inc.', assetType: 'Stock', type: 'Buy', quantity: 20, price: 150.25, totalAmount: 3005 },
@@ -40,23 +42,3 @@ export const mockTransactions: Transaction[] = [
   { id: '16', date: '2024-04-01', assetName: 'Digital Gold', assetType: 'Gold', type: 'Sell', quantity: 20, price: 75, totalAmount: 1500 },
 
 ];
-
-// The following mock data is now deprecated and will be removed.
-// The data will be calculated from the transactions list instead.
-
-export const mockSummary: PortfolioSummary = {
-  totalValue: 0,
-  dayPl: 0,
-  totalPl: 0,
-  totalDeposits: 0,
-  totalInvested: 0,
-  availableCash: 0,
-};
-
-export const mockStocks: any[] = [];
-export const mockMutualFunds: any[] = [];
-export const mockBonds: any[] = [];
-export const mockGold: any[] = [];
-
-export const mockPortfolioHistory: PortfolioHistory[] = [];
-export const mockAssetAllocation: AssetAllocation[] = [];

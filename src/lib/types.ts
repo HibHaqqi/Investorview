@@ -37,11 +37,11 @@ export type Gold = {
 export type Transaction = {
   id: string;
   date: string;
-  assetName?: string; // Optional for Deposits
-  assetType?: 'Stock' | 'Mutual Fund' | 'Bond' | 'Gold'; // Optional for Deposits
-  type: 'Buy' | 'Sell' | 'Deposit';
-  quantity?: number; // Optional for Deposits
-  price?: number; // Optional for Deposits
+  assetName?: string; // Optional for Deposits/Withdrawals
+  assetType?: 'Stock' | 'Mutual Fund' | 'Bond' | 'Gold'; // Optional for Deposits/Withdrawals
+  type: 'Buy' | 'Sell' | 'Deposit' | 'Withdrawal';
+  quantity?: number; // Optional for Deposits/Withdrawals
+  price?: number; // Optional for Deposits/Withdrawals
   totalAmount: number;
 };
 

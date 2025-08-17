@@ -13,6 +13,7 @@ const TypeCell = ({ row }: { row: Transaction }) => {
         case 'Buy': color = 'text-blue-600'; break;
         case 'Sell': color = 'text-red-600'; break;
         case 'Deposit': color = 'text-green-600'; break;
+        case 'Withdrawal': color = 'text-orange-600'; break;
     }
     return (
       <span className={`font-medium ${color}`}>

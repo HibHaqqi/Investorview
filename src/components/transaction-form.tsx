@@ -37,7 +37,7 @@ type OwnedAsset = {
 const formSchema = z.object({
   assetName: z.string().optional(),
   assetType: z.enum(['Stock', 'Mutual Fund', 'Bond', 'Gold']).optional(),
-  type: z.enum(['Buy', 'Sell', 'Deposit']),
+  type: z.enum(['Buy', 'Sell', 'Deposit', 'Withdrawal']),
   quantity: z.coerce.number().optional(),
   price: z.coerce.number().optional(),
   totalAmount: z.coerce.number().positive({message: 'Amount must be positive.'}),
@@ -150,7 +150,7 @@ export function TransactionForm() {
                 totalAmount: values.totalAmount,
             };
 
-            if (values.type !== 'Deposit') {
+            if (values.type === 'Buy' || values.type === 'Sell') {
                 payload.assetName = values.assetName;
                 payload.assetType = values.assetType;
                 payload.quantity = values.quantity;
@@ -172,6 +172,9 @@ export function TransactionForm() {
             });
         }
     }
+
+  const isCashTransaction = transactionType === 'Deposit' || transactionType === 'Withdrawal';
+
 
   return (
     <Card>
@@ -197,6 +200,7 @@ export function TransactionForm() {
                             <SelectItem value="Buy">Buy</SelectItem>
                             <SelectItem value="Sell">Sell</SelectItem>
                             <SelectItem value="Deposit">Deposit</SelectItem>
+                            <SelectItem value="Withdrawal">Withdrawal</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />
@@ -204,7 +208,7 @@ export function TransactionForm() {
                 )}
             />
 
-            {transactionType !== 'Deposit' ? (
+            {!isCashTransaction ? (
                 <>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <FormField
@@ -308,7 +312,7 @@ export function TransactionForm() {
                     name="totalAmount"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Deposit Amount</FormLabel>
+                        <FormLabel>{transactionType === 'Deposit' ? 'Deposit Amount' : 'Withdrawal Amount'}</FormLabel>
                         <FormControl>
                             <Input type="number" placeholder="0.00" {...field} />
                         </FormControl>
